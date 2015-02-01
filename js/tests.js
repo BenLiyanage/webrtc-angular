@@ -1,116 +1,120 @@
-//Inject a fake interval service for testing
-angular.module('webrtcApp').service('myModuleService', ['$interval', function ($interval) {
-    var called = 0;
-    $interval(function () {
-        called++;
-    }, 10);
-    this.getCalled = function () {
-        return called;
-    }
-}]);
+//register provider
+angular.module('webrtcApp').provider('soundMeter', function() { 
+    this.$get = function() { return { 
+        writeToConsole: function() { console.log("hello") }
+    }}
+})
 
-var controller, scope;
+var controller, scope, soundMeter,  httpBackend;
 describe("Angular Tests", function() {
     
     beforeEach(function() {
         module('webrtcApp')
         //Inject our scope variables
-        inject(function($controller, $rootScope) {
+        inject(function($controller, $rootScope, _soundMeter_, _$httpBackend_) {
             scope = $rootScope.$new();
-            controller =  $controller('noisyTimesController', { $scope: scope });
+            soundMeter =  _soundMeter_;
+            httpBackend = _$httpBackend_;
+            controller =  $controller('noisyTimesController', { $scope: scope, soundMeter: _soundMeter_, $httpBackend: _$httpBackend_ });
         })
-        
-        inject(function (myModuleService, _$interval_) {
-            // Initialize the service under test instance
-            service = myModuleService;
-            $interval = _$interval_;
-        });
     })
     
-    it("Tests sending text messages", function() {
-        scope.$apply(function() { scope.sendTextNotification(); } )
-    })
+    // it("Tests sending text messages", function() {
+        // scope.$apply(function() { scope.sendTextNotification(); } )
+    // })
     
     it("Tests Rquirements", function() {
         /* We are replicating this sequence of events
-        Sequence    Time    Volume  Cumulative Volume Output    Send Text
-        0           .5      .5      .25                         No, sound was not long enough.
-        1           1       .25     .25                         Yes, met threshold and CVO requirements.
-        2           1       .5      .5                          Yes, met threshold and CVO requirements.
-        3           2       .25     .5                          Yes, met threshold and CVO requirements.
-        4           1       .25     .25                         No, not one of the top 3 longest/loudest sounds.
-        5           1       .5      .5                          Yes, replaces the time from sequence 1 to be in the top 3 loudest/longest sounds.
+        Sequence    Cumulative Volume Output    Send Text
+        0           5                           Yes, met threshold and CVO requirements.
+        1           1                           Yes, met threshold and CVO requirements.
+        2           3                           Yes, met threshold and CVO requirements.
+        3           0                           No, not one of the top 3 longest/loudest sounds.
+        4           2                           Yes, replaces the time from sequence 1 to be in the top 3 loudest/longest sounds.
+        5           6                           Yes, replaces the time from sequence 4 to be in the top 3 loudest/longest sounds.
         */
-        audioContext = {}
-        soundMeter = {}
         
-        audioContext.currentTime = 0
         soundMeter.slow = .2
+        soundMeter.noisy = false
         scope.detect()
         expect(scope.soundMeter.noisy).toBe(true)
         
-        audioContext.currentTime = 1
         soundMeter.slow = 0
+        soundMeter.cumulativeVolumeOutput = 5
         scope.detect()
         expect(scope.soundMeter.noisy).toBe(false)
-        expect(scope.noisyTimes[0].cumulativeVolumeOutput).toBe(1) //aka 1 second long noisy time
+        expect(scope.noisyTimes[0].cumulativeVolumeOutput).toBe(5) //aka 1 second long noisy time
         expect(scope.noisyTimes.length).toBe(1)
         
-        audioContext.currentTime = 2
         soundMeter.slow = .2
         scope.detect()
         expect(scope.soundMeter.noisy).toBe(true)
         
-        audioContext.currentTime = 4
         soundMeter.slow = 0
+        soundMeter.cumulativeVolumeOutput = 1
         scope.detect()
         expect(scope.soundMeter.noisy).toBe(false)
-        expect(scope.noisyTimes[0].cumulativeVolumeOutput).toBe(2)
+        expect(scope.noisyTimes[0].cumulativeVolumeOutput).toBe(5)
         expect(scope.noisyTimes[1].cumulativeVolumeOutput).toBe(1)
         expect(scope.noisyTimes.length).toBe(2)
         
-        audioContext.currentTime = 5
         soundMeter.slow = .2
         scope.detect()
         expect(scope.soundMeter.noisy).toBe(true)
         
-        audioContext.currentTime = 6
         soundMeter.slow = 0
+        soundMeter.cumulativeVolumeOutput = 3
         scope.detect()
         expect(scope.soundMeter.noisy).toBe(false)
-        expect(scope.noisyTimes[0].cumulativeVolumeOutput).toBe(2)
-        expect(scope.noisyTimes[1].cumulativeVolumeOutput).toBe(1)
+        expect(scope.noisyTimes[0].cumulativeVolumeOutput).toBe(5)
+        expect(scope.noisyTimes[1].cumulativeVolumeOutput).toBe(3)
         expect(scope.noisyTimes[2].cumulativeVolumeOutput).toBe(1)
+        
+        console.log(scope.noisyTimes)
         expect(scope.noisyTimes.length).toBe(3)
         
         // Make sure no 0 second times are added
-        audioContext.currentTime = 6
         soundMeter.slow = .2
         scope.detect()
         expect(scope.soundMeter.noisy).toBe(true)
         
-        audioContext.currentTime = 6
         soundMeter.slow = 0
+        soundMeter.cumulativeVolumeOutput = 0
         scope.detect()
         expect(scope.soundMeter.noisy).toBe(false)
-        expect(scope.noisyTimes[0].cumulativeVolumeOutput).toBe(2)
-        expect(scope.noisyTimes[1].cumulativeVolumeOutput).toBe(1)
+        expect(scope.noisyTimes[0].cumulativeVolumeOutput).toBe(5)
+        expect(scope.noisyTimes[1].cumulativeVolumeOutput).toBe(3)
         expect(scope.noisyTimes[2].cumulativeVolumeOutput).toBe(1)
         expect(scope.noisyTimes.length).toBe(3)
         
         //Push a 1 off of the listStyleType
-        audioContext.currentTime = 6
         soundMeter.slow = .2
         scope.detect()
         expect(scope.soundMeter.noisy).toBe(true)
         
-        audioContext.currentTime = 8
         soundMeter.slow = 0
+        soundMeter.cumulativeVolumeOutput = 2
         scope.detect()
         expect(scope.soundMeter.noisy).toBe(false)
-        expect(scope.noisyTimes[0].cumulativeVolumeOutput).toBe(2)
-        expect(scope.noisyTimes[1].cumulativeVolumeOutput).toBe(2)
-        expect(scope.noisyTimes[2].cumulativeVolumeOutput).toBe(1)
+        expect(scope.noisyTimes[0].cumulativeVolumeOutput).toBe(5)
+        expect(scope.noisyTimes[1].cumulativeVolumeOutput).toBe(3)
+        expect(scope.noisyTimes[2].cumulativeVolumeOutput).toBe(2)
+        expect(scope.noisyTimes.length).toBe(3)
+        
+        //Push the 5 down
+        soundMeter.slow = .2
+        scope.detect()
+        expect(scope.soundMeter.noisy).toBe(true)
+        
+        soundMeter.slow = 0
+        soundMeter.cumulativeVolumeOutput = 6
+        scope.detect()
+        
+        console.log(scope.noisyTimes)
+        expect(scope.soundMeter.noisy).toBe(false)
+        expect(scope.noisyTimes[0].cumulativeVolumeOutput).toBe(6)
+        expect(scope.noisyTimes[1].cumulativeVolumeOutput).toBe(5)
+        expect(scope.noisyTimes[2].cumulativeVolumeOutput).toBe(3)
         expect(scope.noisyTimes.length).toBe(3)
     })
 })

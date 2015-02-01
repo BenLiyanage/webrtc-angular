@@ -14,13 +14,11 @@ webrtcApp.controller('noisyTimesController', ['$scope', '$http', '$interval','so
     {
         try
         {
-            console.log(soundMeter)
             //Detect if it's noisy
             if (soundMeter.slow > $scope.threshold && soundMeter.noisy === false)
             {
                 console.log("its noisy!");
                 soundMeter.noisy = true;
-                noisyStart = audioContext.currentTime;
                 $scope.thisNoise.start = new Date().toLocaleString();
             }
             else if (soundMeter.slow < $scope.threshold && soundMeter.noisy === true)
@@ -42,12 +40,12 @@ webrtcApp.controller('noisyTimesController', ['$scope', '$http', '$interval','so
                 else
                 {
                     var addedElement = false;
-                    for (var i = $scope.noisyTimes.length; i--; i > 0)
+                    for (var i = 0; i < $scope.noisyTimes.length; i++)
                     {
                         if ($scope.noisyTimes[i].cumulativeVolumeOutput < $scope.thisNoise.cumulativeVolumeOutput)
                         {
                             addedElement = true;
-                            $scope.addNoisyTime(i-1, newNoise)  //-1 to add before the current item
+                            $scope.addNoisyTime(i, newNoise)  //-1 to add before the current item
                             break;
                         }
                     }
