@@ -5,17 +5,24 @@ angular.module('webrtcApp').provider('soundMeter', function() {
     }}
 })
 
+function verifyResponse(httpBackend)
+{
+    httpBackend.flush();
+    httpBackend.verifyNoOutstandingExpectation()
+    httpBackend.verifyNoOutstandingRequest();
+}
+
 var controller, scope, soundMeter,  httpBackend;
 describe("Angular Tests", function() {
     
     beforeEach(function() {
         module('webrtcApp')
         //Inject our scope variables
-        inject(function($controller, $rootScope, _soundMeter_, _$httpBackend_) {
+        inject(function($controller, $rootScope, _soundMeter_, $httpBackend) {
             scope = $rootScope.$new();
             soundMeter =  _soundMeter_;
-            httpBackend = _$httpBackend_;
-            controller =  $controller('noisyTimesController', { $scope: scope, soundMeter: _soundMeter_, $httpBackend: _$httpBackend_ });
+            httpBackend = $httpBackend
+            controller =  $controller('noisyTimesController', { $scope: scope, soundMeter: _soundMeter_});
         })
     })
     
@@ -46,6 +53,12 @@ describe("Angular Tests", function() {
         expect(scope.noisyTimes[0].cumulativeVolumeOutput).toBe(5) //aka 1 second long noisy time
         expect(scope.noisyTimes.length).toBe(1)
         
+        //Verify that we got our text
+        httpBackend.expectPOST('http://cors-anywhere.herokuapp.com/https://api.sendhub.com/v1/messages/?api_key=57e642c3992c52ad08f26f4dced584a17e27588d&username=6506562778').respond(200);
+        httpBackend.flush();
+        httpBackend.verifyNoOutstandingExpectation()
+        httpBackend.verifyNoOutstandingRequest();
+        
         soundMeter.slow = .2
         scope.detect()
         expect(scope.soundMeter.noisy).toBe(true)
@@ -58,6 +71,12 @@ describe("Angular Tests", function() {
         expect(scope.noisyTimes[1].cumulativeVolumeOutput).toBe(1)
         expect(scope.noisyTimes.length).toBe(2)
         
+        //verify that we requested a text
+        httpBackend.expectPOST('http://cors-anywhere.herokuapp.com/https://api.sendhub.com/v1/messages/?api_key=57e642c3992c52ad08f26f4dced584a17e27588d&username=6506562778').respond(200);
+        httpBackend.flush();
+        httpBackend.verifyNoOutstandingExpectation()
+        httpBackend.verifyNoOutstandingRequest();
+        
         soundMeter.slow = .2
         scope.detect()
         expect(scope.soundMeter.noisy).toBe(true)
@@ -69,9 +88,13 @@ describe("Angular Tests", function() {
         expect(scope.noisyTimes[0].cumulativeVolumeOutput).toBe(5)
         expect(scope.noisyTimes[1].cumulativeVolumeOutput).toBe(3)
         expect(scope.noisyTimes[2].cumulativeVolumeOutput).toBe(1)
-        
-        console.log(scope.noisyTimes)
         expect(scope.noisyTimes.length).toBe(3)
+        
+        //verify that we requested a text
+        httpBackend.expectPOST('http://cors-anywhere.herokuapp.com/https://api.sendhub.com/v1/messages/?api_key=57e642c3992c52ad08f26f4dced584a17e27588d&username=6506562778').respond(200);
+        httpBackend.flush();
+        httpBackend.verifyNoOutstandingExpectation()
+        httpBackend.verifyNoOutstandingRequest();
         
         // Make sure no 0 second times are added
         soundMeter.slow = .2
@@ -87,6 +110,10 @@ describe("Angular Tests", function() {
         expect(scope.noisyTimes[2].cumulativeVolumeOutput).toBe(1)
         expect(scope.noisyTimes.length).toBe(3)
         
+        //verify that we did NOT requested a text
+        httpBackend.verifyNoOutstandingExpectation()
+        httpBackend.verifyNoOutstandingRequest();
+        
         //Push a 1 off of the listStyleType
         soundMeter.slow = .2
         scope.detect()
@@ -100,6 +127,12 @@ describe("Angular Tests", function() {
         expect(scope.noisyTimes[1].cumulativeVolumeOutput).toBe(3)
         expect(scope.noisyTimes[2].cumulativeVolumeOutput).toBe(2)
         expect(scope.noisyTimes.length).toBe(3)
+        
+        //verify that we requested a text
+        httpBackend.expectPOST('http://cors-anywhere.herokuapp.com/https://api.sendhub.com/v1/messages/?api_key=57e642c3992c52ad08f26f4dced584a17e27588d&username=6506562778').respond(200);
+        httpBackend.flush();
+        httpBackend.verifyNoOutstandingExpectation()
+        httpBackend.verifyNoOutstandingRequest();
         
         //Push the 5 down
         soundMeter.slow = .2
@@ -116,5 +149,11 @@ describe("Angular Tests", function() {
         expect(scope.noisyTimes[1].cumulativeVolumeOutput).toBe(5)
         expect(scope.noisyTimes[2].cumulativeVolumeOutput).toBe(3)
         expect(scope.noisyTimes.length).toBe(3)
+        
+        //verify that we requested a text
+        httpBackend.expectPOST('http://cors-anywhere.herokuapp.com/https://api.sendhub.com/v1/messages/?api_key=57e642c3992c52ad08f26f4dced584a17e27588d&username=6506562778').respond(200);
+        httpBackend.flush();
+        httpBackend.verifyNoOutstandingExpectation()
+        httpBackend.verifyNoOutstandingRequest();
     })
 })
