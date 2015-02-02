@@ -2,35 +2,51 @@ var webrtcApp = angular.module('webrtcApp', [])
     
 webrtcApp.controller('noisyTimesController', ['$scope', '$http', '$interval','soundMeter', function($scope, $http, $interval, soundMeter) {
     var initializer;
-    $scope.noisy = false;
-    $scope.noisyStart = 0
     $scope.noisyTimes = [];
-    $scope.threshold = ".1";
     $scope.numberToText = "+14103362464"
-    $scope.thisNoise = {}
     $scope.soundMeter = soundMeter
     
+    /* If there are any changes to the noisy times, text */
+    $scope.$watchCollection('noisyTimes', function() {
+        //Prevent the watch from firing on construction
+        if ($scope.noisyTimes.length == 0)
+            return;
+            
+        $http({
+                method: 'post', 
+                url: 'http://cors-anywhere.herokuapp.com/https://api.sendhub.com/v1/messages/',
+                params: { 'username': '6506562778', 'api_key': '57e642c3992c52ad08f26f4dced584a17e27588d' }, //its bad practice to put api keys into a javascript file
+                data: { 'contacts': [  $scope.numberToText ], 'text':'It\'s so loud in here' }
+            })
+            .error(function (data, status, headers, config) {  console.log(data, status, headers, config) })
+            .success(function (data, status, headers, config) { console.log(data, status, headers, config) })
+    }, true)
+    
+    /* This logic should really all be moved into the soundMeterService, so that it can be basedon the length of a sound after the threshold, as opposed to an interval checkin */
+    /* Conceptually the soundMeterService is simply providing a list of 3 noisy times. That we can watch, and act upon in our controller. */
+    /* I'm not doing this because my unit tests were built around the controller, and I have not built out unit tests for the service. */
     $scope.detect = function()
     {
         try
         {
+            console.log(soundMeter)
             //Detect if it's noisy
-            if (soundMeter.slow > $scope.threshold && soundMeter.noisy === false)
+            if (soundMeter.instant > soundMeter.threshold && soundMeter.noisy === false)
             {
                 console.log("its noisy!");
                 soundMeter.noisy = true;
-                $scope.thisNoise.start = new Date().toLocaleString();
+                soundMeter.thisNoise.start = new Date().toLocaleString();
             }
-            else if (soundMeter.slow < $scope.threshold && soundMeter.noisy === true)
+            else if (soundMeter.instant < soundMeter.threshold && soundMeter.noisy === true)
             {
                 console.log('it\'s quiet now');
                 soundMeter.noisy = false;
-                $scope.thisNoise.cumulativeVolumeOutput = $scope.copyValue(soundMeter.cumulativeVolumeOutput);
+                soundMeter.thisNoise.cumulativeVolumeOutput = eval(soundMeter.cumulativeVolumeOutput);
                 soundMeter.cumulativeVolumeOutput = 0
-                $scope.thisNoise.end = new Date().toLocaleString();
+                soundMeter.thisNoise.end = new Date().toLocaleString();
                 
                 //copy the scope by value not reference
-                var newNoise = $scope.copyValue($scope.thisNoise);
+                var newNoise = $scope.copyValue(soundMeter.thisNoise);
                 console.log(newNoise)
                 
                 if ($scope.noisyTimes.length === 0)
@@ -42,10 +58,10 @@ webrtcApp.controller('noisyTimesController', ['$scope', '$http', '$interval','so
                     var addedElement = false;
                     for (var i = 0; i < $scope.noisyTimes.length; i++)
                     {
-                        if ($scope.noisyTimes[i].cumulativeVolumeOutput < $scope.thisNoise.cumulativeVolumeOutput)
+                        if ($scope.noisyTimes[i].cumulativeVolumeOutput < soundMeter.thisNoise.cumulativeVolumeOutput)
                         {
                             addedElement = true;
-                            $scope.addNoisyTime(i, newNoise)  //-1 to add before the current item
+                            $scope.addNoisyTime(i, newNoise)
                             break;
                         }
                     }
@@ -72,21 +88,6 @@ webrtcApp.controller('noisyTimesController', ['$scope', '$http', '$interval','so
         {
             $scope.noisyTimes.pop()
         }
-        
-        //notify phone number that its been noisy
-        $scope.sendTextNotification()
-    }
-    
-    $scope.sendTextNotification = function() {
-        
-            $http({
-                method: 'post', 
-                url: 'http://cors-anywhere.herokuapp.com/https://api.sendhub.com/v1/messages/',
-                params: { 'username': '6506562778', 'api_key': '57e642c3992c52ad08f26f4dced584a17e27588d' }, //its bad practice to put api keys into a javascript file
-                data: { 'contacts': [  $scope.numberToText ], 'text':'It\'s so loud in here' }
-            })
-            .error(function (data, status, headers, config) {  console.log(data, status, headers, config) })
-            .success(function (data, status, headers, config) { console.log(data, status, headers, config) })
     }
     
     $scope.copyValue = function(valueToCopy) {

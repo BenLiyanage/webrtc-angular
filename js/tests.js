@@ -41,12 +41,15 @@ describe("Angular Tests", function() {
         5           6                           Yes, replaces the time from sequence 4 to be in the top 3 loudest/longest sounds.
         */
         
-        soundMeter.slow = .2
+        soundMeter.instant = .2
         soundMeter.noisy = false
+        soundMeter.threshold = .1
+        soundMeter.thisNoise = {}
+        
         scope.detect()
         expect(scope.soundMeter.noisy).toBe(true)
         
-        soundMeter.slow = 0
+        soundMeter.instant = 0
         soundMeter.cumulativeVolumeOutput = 5
         scope.detect()
         expect(scope.soundMeter.noisy).toBe(false)
@@ -54,16 +57,17 @@ describe("Angular Tests", function() {
         expect(scope.noisyTimes.length).toBe(1)
         
         //Verify that we got our text
+        console.log(scope);
         httpBackend.expectPOST('http://cors-anywhere.herokuapp.com/https://api.sendhub.com/v1/messages/?api_key=57e642c3992c52ad08f26f4dced584a17e27588d&username=6506562778').respond(200);
         httpBackend.flush();
         httpBackend.verifyNoOutstandingExpectation()
         httpBackend.verifyNoOutstandingRequest();
         
-        soundMeter.slow = .2
+        soundMeter.instant = .2
         scope.detect()
         expect(scope.soundMeter.noisy).toBe(true)
         
-        soundMeter.slow = 0
+        soundMeter.instant = 0
         soundMeter.cumulativeVolumeOutput = 1
         scope.detect()
         expect(scope.soundMeter.noisy).toBe(false)
@@ -77,11 +81,11 @@ describe("Angular Tests", function() {
         httpBackend.verifyNoOutstandingExpectation()
         httpBackend.verifyNoOutstandingRequest();
         
-        soundMeter.slow = .2
+        soundMeter.instant = .2
         scope.detect()
         expect(scope.soundMeter.noisy).toBe(true)
         
-        soundMeter.slow = 0
+        soundMeter.instant = 0
         soundMeter.cumulativeVolumeOutput = 3
         scope.detect()
         expect(scope.soundMeter.noisy).toBe(false)
@@ -97,11 +101,11 @@ describe("Angular Tests", function() {
         httpBackend.verifyNoOutstandingRequest();
         
         // Make sure no 0 second times are added
-        soundMeter.slow = .2
+        soundMeter.instant = .2
         scope.detect()
         expect(scope.soundMeter.noisy).toBe(true)
         
-        soundMeter.slow = 0
+        soundMeter.instant = 0
         soundMeter.cumulativeVolumeOutput = 0
         scope.detect()
         expect(scope.soundMeter.noisy).toBe(false)
@@ -115,11 +119,11 @@ describe("Angular Tests", function() {
         httpBackend.verifyNoOutstandingRequest();
         
         //Push a 1 off of the listStyleType
-        soundMeter.slow = .2
+        soundMeter.instant = .2
         scope.detect()
         expect(scope.soundMeter.noisy).toBe(true)
         
-        soundMeter.slow = 0
+        soundMeter.instant = 0
         soundMeter.cumulativeVolumeOutput = 2
         scope.detect()
         expect(scope.soundMeter.noisy).toBe(false)
@@ -135,11 +139,11 @@ describe("Angular Tests", function() {
         httpBackend.verifyNoOutstandingRequest();
         
         //Push the 5 down
-        soundMeter.slow = .2
+        soundMeter.instant = .2
         scope.detect()
         expect(scope.soundMeter.noisy).toBe(true)
         
-        soundMeter.slow = 0
+        soundMeter.instant = 0
         soundMeter.cumulativeVolumeOutput = 6
         scope.detect()
         

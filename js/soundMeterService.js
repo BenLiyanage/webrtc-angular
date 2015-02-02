@@ -18,11 +18,20 @@ var webrtcApp = angular.module('webrtcApp')
 
 webrtcApp.service('soundMeter', ['$rootScope', function($rootScope) {
     this.instant = 0.0;
-    this.slow = 0.0;
-    this.clip = 0.0;
     this.cumulativeVolumeOutput = 0.0;
     this.noisy = false;
+    this.graph = {}
+    this.graph['liveView'] = new google.visualization.DataTable()
+    this.graphBuffer = 500;
+    this.threshold = 0.1;
+    this.thisNoise = { 'initialized': true }
     var that = this;
+    
+    this.graph['liveView'].addColumn('date', 'date')
+    this.graph['liveView'].addColumn('number', 'Interesting')
+    this.graph['liveView'].addColumn('number', 'Quiet')
+    this.graph['liveView'].addRows(this.graphBuffer)
+    console.log(this.graph['liveView'].getNumberOfRows())
     
     var errorCallback = function(error) {
         console.log('navigator.getUserMedia error: ', error);
@@ -55,20 +64,22 @@ webrtcApp.service('soundMeter', ['$rootScope', function($rootScope) {
         var input = event.inputBuffer.getChannelData(0);
         var i;
         var sum = 0.0;
-        var clipcount = 0;
         for (i = 0; i < input.length; ++i) {
             sum += input[i] * input[i];
-            if (Math.abs(input[i]) > 0.99) {
-                clipcount += 1;
-            }
         }
         
         that.instant = Math.sqrt(sum / input.length);
-        that.slow = 0.95 * that.slow + 0.05 * that.instant;
-        that.clip = clipcount / input.length;
+        
         if (that.noisy)
         {
             that.cumulativeVolumeOutput+= that.instant
+        }
+        
+        that.graph['liveView'].addRow([new Date(), (that.noisy ? eval(that.instant) : {"v": null}) , (that.noisy ? {"v": null} : eval(that.instant)) ])
+        if (that.graph['liveView'].getNumberOfRows() > that.graphBuffer)
+        {
+            //make sure our array never gets too big.
+            that.graph['liveView'].removeRow(0, that.graph['liveView'].length-that.graphBuffer)
         }
         $rootScope.$apply()
     }

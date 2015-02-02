@@ -266,3 +266,6 @@ color: #0f9d58;
 /* BSL Styles */
 label { width:150px; display: inline-block;}
 div#parameters > div { height: 28px; margin: 0px 0px 10px; }
+#threshold { width: 100px; margin-left:0px; }
+#numberToText { width: 100px; }
+#volume { width: 102px; margin-right:11px; }
